@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Baukasten – Layout & Komponenten Builder</title>
+<style>
+  :root{
+    --bg-color:#f4f6f9;
+    --sidebar-bg:#1c2333;
+    --sidebar-text:#f8fafc;
+    --accent:#2563eb;
+    --accent-soft:#dbeafe;
+    --border-color:#cbd5e1;
+    --panel-bg:#ffffff;
+    --text-main:#0f172a;
+    --text-muted:#64748b;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;}
+  html,body{height:100%;}
+  body{display:flex;background:var(--bg-color);color:var(--text-main);overflow:hidden;}
+
+  /* ---------- App Shell ---------- */
+  #app-sidebar{
+    width:250px;flex-shrink:0;background:var(--sidebar-bg);color:var(--sidebar-text);
+    display:flex;flex-direction:column;padding:20px 0;overflow-y:auto;
+  }
+  #app-sidebar h2{padding:0 20px 15px;font-size:1.05rem;border-bottom:1px solid #33405c;letter-spacing:.2px;}
+  .section-title{padding:16px 20px 6px;font-size:.72rem;text-transform:uppercase;color:#8896b3;letter-spacing:1.2px;}
+  .nav-list{list-style:none;}
+  .nav-item{padding:9px 20px;cursor:pointer;font-size:.92rem;transition:background .15s;}
+  .nav-item:hover,.nav-item.active{background:#2a3350;color:#67c7ff;}
+
+  .toolbox-btn{
+    display:flex;align-items:center;gap:9px;width:calc(100% - 20px);margin:2px 10px;
+    padding:8px 10px;background:#252e47;border:1px solid #37425f;color:var(--sidebar-text);
+    border-radius:6px;font-size:.85rem;cursor:pointer;text-align:left;transition:background .15s, border-color .15s;
+  }
+  .toolbox-btn:hover{background:#2f3a58;border-color:var(--accent);}
+  .toolbox-btn .ic{font-size:1rem;width:18px;text-align:center;}
+  .toolbox-btn.lib{background:#1a3a52;border-color:#215a80;}
+  .toolbox-btn.lib:hover{background:#1f4966;}
+
+  #main-content{
+    flex:1;display:grid;grid-template-columns:1fr 340px;gap:18px;
+    padding:20px;overflow:hidden;height:100vh;
+  }
+  #workspace-col{overflow-y:auto;display:flex;flex-direction:column;gap:18px;padding-right:4px;}
+  #props-col{overflow-y:auto;}
+
+  .panel{background:var(--panel-bg);border-radius:10px;padding:18px 20px;box-shadow:0 1px 3px rgba(15,23,42,.08);}
+  .panel h3{font-size:.95rem;margin-bottom:12px;color:var(--text-main);}
+  .hint-text{font-size:.82rem;color:var(--text-muted);line-height:1.5;}
+
+  /* ---------- Properties Panel ---------- */
+  #props-panel{position:sticky;top:0;}
+  #prop-target-label{color:var(--accent);}
+  .controls-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:8px;}
+  .control-group{display:flex;flex-direction:column;gap:4px;font-size:.8rem;font-weight:600;color:#334155;}
+  .control-group input,.control-group select{
+    padding:6px 7px;border:1px solid var(--border-color);border-radius:5px;font-weight:normal;font-size:.85rem;
+  }
+  .control-group input[type=color]{padding:2px;height:30px;}
+  .control-group input[type=checkbox]{width:18px;height:18px;align-self:flex-start;}
+
+  #element-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:16px;padding-top:14px;border-top:1px solid #e2e8f0;}
+  .mini-action{
+    background:#eef2ff;color:#1e293b;border:1px solid var(--border-color);padding:6px 10px;border-radius:6px;
+    font-size:.8rem;cursor:pointer;font-weight:600;
+  }
+  .mini-action:hover{background:var(--accent-soft);}
+  .mini-action.danger{background:#fee2e2;border-color:#fca5a5;color:#991b1b;}
+  .mini-action.danger:hover{background:#fecaca;}
+
+  /* ---------- Toolbar (Elemente hinzufügen) ---------- */
+  .builder-toolbar{display:flex;flex-wrap:wrap;gap:8px;}
+  .builder-toolbar .grp-label{font-size:.78rem;font-weight:700;color:var(--text-muted);width:100%;margin-top:6px;text-transform:uppercase;letter-spacing:.5px;}
+  .builder-toolbar .grp-label:first-child{margin-top:0;}
+  .add-btn{
+    background:#eef2ff;border:1px solid var(--border-color);color:var(--text-main);
+    padding:7px 12px;border-radius:6px;font-size:.85rem;cursor:pointer;font-weight:600;
+  }
+  .add-btn:hover{background:var(--accent-soft);border-color:var(--accent);}
+  .add-btn.lib{background:#e0f2fe;border-color:#7dd3fc;}
+  .add-btn.lib:hover{background:#bae6fd;}
+  .toolbar-reset{background:#fef2f2;border-color:#fca5a5;color:#991b1b;margin-left:auto;}
+  .toolbar-reset:hover{background:#fee2e2;}
+
+  /* ---------- Preview Canvas ---------- */
+  #preview-container{
+    min-height:280px;border:2px dashed var(--border-color);border-radius:10px;padding:18px;
+    background:#fff;overflow:auto;position:relative;
+  }
+  .site-container{outline:none;}
+  .empty-hint{font-size:.8rem;color:#94a3b8;font-style:italic;padding:14px;border:1px dashed #e2e8f0;border-radius:6px;text-align:center;}
+
+  .builder-item-wrapper{
+    position:relative;display:flex;align-items:stretch;gap:4px;
+    border:2px dashed transparent;border-radius:6px;padding:3px;cursor:pointer;transition:border-color .12s;
+  }
+  .builder-item-wrapper:hover{border-color:#93c5fd;}
+  .builder-item-wrapper.active-element{border-color:var(--accent) !important;box-shadow:0 0 0 3px rgba(37,99,235,.15);}
+  .builder-item-wrapper.drag-over{border-color:#16a34a !important;background:rgba(34,197,94,.08);}
+  .builder-item-wrapper.is-container{align-items:stretch;}
+
+  .drag-handle{
+    flex-shrink:0;width:16px;display:flex;align-items:center;justify-content:center;
+    cursor:grab;color:#94a3b8;font-size:.9rem;user-select:none;
+  }
+  .drag-handle:active{cursor:grabbing;}
+
+  .container-inner{min-height:32px;flex:1;}
+  .container-inner:empty::before{content:'';}
+
+  .item-toolbar{
+    position:absolute;top:-12px;right:2px;display:none;gap:3px;background:#0f172a;border-radius:6px;padding:3px;z-index:20;
+  }
+  .builder-item-wrapper:hover > .item-toolbar{display:flex;}
+  .mini-btn{
+    background:#334155;color:#fff;border:none;border-radius:4px;width:20px;height:20px;font-size:.7rem;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .mini-btn:hover{background:var(--accent);}
+  .mini-btn.del:hover{background:#ef4444;}
+
+  .editable-content{outline:none;border-radius:3px;}
+  .editable-content:focus{background:rgba(59,130,246,.12);outline:1px dashed var(--accent);}
+
+  .accordion-header{user-select:none;}
+  .accordion-caret{display:inline-block;transition:transform .15s ease;font-size:.8em;}
+  .accordion-caret.open{transform:rotate(180deg);}
+
+  /* ---------- Code Output ---------- */
+  .code-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+  .options-group{display:flex;gap:14px;align-items:center;font-size:.85rem;}
+  .code-box-container{display:flex;flex-direction:column;gap:14px;}
+  .code-block{display:flex;flex-direction:column;gap:5px;}
+  .code-block-header{display:flex;justify-content:space-between;align-items:center;font-size:.83rem;font-weight:700;color:#475569;}
+  textarea{
+    width:100%;height:130px;background:#0f172a;color:#38bdf8;font-family:'Courier New',monospace;
+    padding:10px;border-radius:6px;border:none;resize:vertical;font-size:.8rem;
+  }
+
+  .btn{background:var(--accent);color:#fff;border:none;padding:6px 12px;border-radius:5px;cursor:pointer;font-size:.83rem;font-weight:600;}
+  .btn:hover{opacity:.9;}
+  .btn.copied{background:#16a34a;}
+
+  @media (max-width:980px){
+    #main-content{grid-template-columns:1fr;overflow:auto;height:auto;}
+    #props-panel{position:static;}
+  }
+</style>
+</head>
+<body>
+
+  <div id="app-sidebar">
+    <h2>Web Baukasten</h2>
+
+    <div class="section-title">Ansicht</div>
+    <ul class="nav-list">
+      <li class="nav-item active">🛠️ Layout &amp; HTML Builder</li>
+    </ul>
+
+    <div class="section-title">Text &amp; Inhalt</div>
+    <button class="toolbox-btn" onclick="addBuilderElement('h1')"><span class="ic">H1</span> Überschrift</button>
+    <button class="toolbox-btn" onclick="addBuilderElement('h2')"><span class="ic">H2</span> Unterüberschrift</button>
+    <button class="toolbox-btn" onclick="addBuilderElement('p')"><span class="ic">¶</span> Absatz</button>
+    <button class="toolbox-btn" onclick="addBuilderElement('span')"><span class="ic">Ab</span> Inline-Text</button>
+    <button class="toolbox-btn" onclick="addBuilderElement('a')"><span class="ic">🔗</span> Link</button>
+    <button class="toolbox-btn" onclick="addBuilderElement('button')"><span class="ic">▭</span> Button</button>
+    <button class="toolbox-btn" onclick="addBuilderElement('input')"><span class="ic">⌨</span> Eingabefeld</button>
+    <button class="toolbox-btn" onclick="addBuilderElement('hr')"><span class="ic">―</span> Trennlinie</button>
+
+    <div class="section-title">Struktur</div>
+    <button class="toolbox-btn lib" onclick="addBuilderElement('div')"><span class="ic">▢</span> Box</button>
+    <button class="toolbox-btn lib" onclick="addBuilderElement('section')"><span class="ic">▤</span> Section</button>
+    <button class="toolbox-btn lib" onclick="addBuilderElement('accordion')"><span class="ic">▾</span> Accordion</button>
+
+    <div class="section-title">Bibliothek</div>
+    <button class="toolbox-btn lib" onclick="addBuilderElement('navbar')"><span class="ic">☰</span> Navbar</button>
+    <button class="toolbox-btn lib" onclick="addBuilderElement('header')"><span class="ic">⤒</span> Header</button>
+    <button class="toolbox-btn lib" onclick="addBuilderElement('sidebar')"><span class="ic">◫</span> Seitenleiste</button>
+    <button class="toolbox-btn lib" onclick="addBuilderElement('footer')"><span class="ic">⤓</span> Footer</button>
+
+    <div class="section-title">&nbsp;</div>
+    <button class="toolbox-btn" style="background:#3f1d1d;border-color:#7f1d1d;" onclick="resetBuilder()"><span class="ic">↺</span> Baukasten zurücksetzen</button>
+
+    <p class="hint-text" style="padding:14px 20px 0;color:#8896b3;">
+      Tipp: Wähle einen Container aus (Klick), bevor du ein Element hinzufügst – es wird dann darin verschachtelt.
+      Ziehe Elemente per <strong>⠿</strong> an eine andere Stelle oder in einen Container.
+    </p>
+  </div>
+
+  <div id="main-content">
+
+    <div id="workspace-col">
+
+      <!-- Preview -->
+      <div class="panel">
+        <h3>Vorschau</h3>
+        <div id="preview-container"></div>
+      </div>
+
+      <!-- Code Output -->
+      <div class="panel">
+        <div class="code-header">
+          <h3>Generierter Code</h3>
+          <div class="options-group">
+            <label><input type="radio" name="codeFormat" value="separated" checked onchange="toggleCodeFormat()"> Getrennt (HTML/CSS)</label>
+            <label><input type="radio" name="codeFormat" value="inline" onchange="toggleCodeFormat()"> Inline-Styles</label>
+          </div>
+        </div>
+
+        <div id="separated-code-container" class="code-box-container">
+          <div class="code-block">
+            <div class="code-block-header"><span>HTML</span><button class="btn" onclick="copyIndividual('code-html', this)">Kopieren</button></div>
+            <textarea id="code-html" readonly></textarea>
+          </div>
+          <div class="code-block">
+            <div class="code-block-header"><span>CSS</span><button class="btn" onclick="copyIndividual('code-css', this)">Kopieren</button></div>
+            <textarea id="code-css" readonly></textarea>
+          </div>
+        </div>
+
+        <div id="inline-code-container" class="code-box-container" style="display:none;">
+          <div class="code-block">
+            <div class="code-block-header"><span>Inline HTML / Style</span><button class="btn" onclick="copyIndividual('code-inline', this)">Kopieren</button></div>
+            <textarea id="code-inline" style="height:220px;" readonly></textarea>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="props-col">
+      <div class="panel" id="props-panel">
+        <h3>Eigenschaften: <span id="prop-target-label"></span></h3>
+        <div id="prop-fields" class="controls-grid"></div>
+        <div id="element-actions"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+
+</body>
+</html>
