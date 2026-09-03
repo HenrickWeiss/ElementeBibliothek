@@ -1,5 +1,4 @@
 
-
 const CONTAINER_TAGS = ['root','div','section','navbar','header','sidebar','footer','accordion'];
 const isContainer = (tag) => CONTAINER_TAGS.includes(tag);
 
